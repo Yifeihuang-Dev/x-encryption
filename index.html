@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>XEncryption · Local Encryption Vault</title>
+<link rel="icon" type="image/png" href="assets/X.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <img class="logo-img" src="assets/X.png" alt="XE">
+      <div class="brand-text">
+        <h1>XEncryption</h1>
+        <p data-i18n="tagline">Three-factor local encryption · Runs in your browser · Zero network</p>
+      </div>
+    </div>
+    <div class="badges">
+      <button class="lang-btn" type="button" id="lang-btn">中文</button>
+      <span class="badge" id="badge-context">…</span>
+      <span class="badge" id="badge-prf" hidden></span>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="encrypt" data-i18n="tab_encrypt">Encrypt</button>
+    <button class="tab" data-tab="decrypt" data-i18n="tab_decrypt">Decrypt</button>
+    <button class="tab" data-tab="tools" data-i18n="tab_tools">Certificates & Tools</button>
+    <button class="tab" data-tab="about" data-i18n="tab_about">About</button>
+  </nav>
+
+  <main>
+
+    <!-- ============ Encrypt ============ -->
+    <section class="panel active" id="panel-encrypt">
+
+      <div class="card">
+        <h2><span class="step">1</span><span data-i18n="enc_step1">Choose a file</span></h2>
+        <div class="dropzone" id="enc-drop" tabindex="0">
+          <input type="file" id="enc-file" hidden>
+          <div class="dz-icon">＋</div>
+          <p class="dz-main" data-i18n-html="enc_drop_main">Drag a file here, or <span class="link">click to choose</span></p>
+          <p class="dz-hint" data-i18n="enc_drop_hint">Any type works — PDF, video, archive, disk image…</p>
+        </div>
+        <div class="file-info" id="enc-file-info" hidden></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">2</span><span data-i18n="enc_step2">Factor 1 · Password</span></h2>
+        <div class="field">
+          <label for="enc-password" data-i18n="enc_pw">Password</label>
+          <div class="row">
+            <input type="password" id="enc-password" data-i18n-ph="enc_pw_ph" placeholder="Enter password" autocomplete="new-password" spellcheck="false">
+            <button class="ghost" type="button" id="enc-toggle-pw" data-i18n="enc_pw_show">Show</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="enc-password2" data-i18n="enc_pw2">Repeat</label>
+          <input type="password" id="enc-password2" data-i18n-ph="enc_pw2_ph" placeholder="Confirm password" autocomplete="new-password" spellcheck="false">
+        </div>
+        <div class="strength" id="enc-strength"></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">3</span><span data-i18n="enc_step3">Factor 2 · Certificate file</span></h2>
+        <div class="radio-group" id="enc-certmode">
+          <label class="radio"><input type="radio" name="certmode" value="new" checked><span data-i18n="enc_cert_new">Generate a new certificate (recommended)</span></label>
+          <label class="radio"><input type="radio" name="certmode" value="existing"><span data-i18n="enc_cert_existing">Use an existing certificate</span></label>
+          <label class="radio"><input type="radio" name="certmode" value="none"><span data-i18n="enc_cert_none">None (password only — weaker)</span></label>
+        </div>
+        <div id="enc-existing-cert" hidden>
+          <div class="dropzone small" id="enc-cert-drop" tabindex="0">
+            <input type="file" id="enc-cert-file" hidden accept=".enc1cert,.txt,.pem">
+            <p class="dz-main" data-i18n-html="enc_cert_drop">Drag or choose a .enc1cert file</p>
+          </div>
+          <div class="file-info" id="enc-cert-info" hidden></div>
+        </div>
+        <p class="warn-inline" data-i18n="enc_cert_warn">Losing the certificate = data unrecoverable forever.</p>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">4</span><span data-i18n="enc_step4">Factor 3 · Hardware key (optional)</span></h2>
+        <label class="checkline"><input type="checkbox" id="enc-use-webauthn"><span data-i18n="enc_wa_enable">Enable hardware key</span></label>
+        <div id="enc-webauthn-options" hidden>
+          <div class="field">
+            <label for="enc-attachment" data-i18n="enc_wa_type">Authenticator type</label>
+            <select id="enc-attachment">
+              <option value="" data-i18n="enc_wa_auto">Automatic</option>
+              <option value="platform" data-i18n="enc_wa_platform">Platform authenticator</option>
+              <option value="cross-platform" data-i18n="enc_wa_roaming">External security key</option>
+            </select>
+          </div>
+          <p class="hint" id="enc-prf-hint"></p>
+        </div>
+        <p class="hint" data-i18n="enc_wa_note">A recovery code will also be generated.</p>
+      </div>
+
+      <div class="card">
+        <h2><span data-i18n="enc_src_title">About the original file</span></h2>
+        <p class="hint" data-i18n="enc_src_p">The browser cannot delete your original file.</p>
+        <ul class="bullets">
+          <li data-i18n="enc_src_b1">On an SSD, delete does not mean erase.</li>
+          <li data-i18n="enc_src_b2">Rely on full-disk encryption for true unrecoverability.</li>
+        </ul>
+      </div>
+
+      <div class="card actions">
+        <button class="primary" id="enc-submit" disabled data-i18n="enc_submit">Encrypt</button>
+        <div class="progress" id="enc-progress" hidden>
+          <div class="bar"><span id="enc-bar"></span></div>
+          <p class="status" id="enc-status"></p>
+        </div>
+      </div>
+
+      <div class="card result" id="enc-result" hidden>
+        <h2 data-i18n="tab_encrypt_done">Encryption complete</h2>
+        <div id="enc-result-body"></div>
+      </div>
+    </section>
+
+    <!-- ============ Decrypt ============ -->
+    <section class="panel" id="panel-decrypt">
+
+      <div class="card">
+        <h2><span class="step">1</span><span data-i18n="dec_step1">Choose an .enc1 file</span></h2>
+        <div class="dropzone" id="dec-drop" tabindex="0">
+          <input type="file" id="dec-file" hidden accept=".enc1">
+          <div class="dz-icon">⤓</div>
+          <p class="dz-main" data-i18n-html="dec_drop">Drag a .enc1 file here, or click to choose</p>
+        </div>
+        <div id="dec-requirements" hidden></div>
+      </div>
+
+      <div class="card" id="dec-factors-card" hidden>
+        <h2><span class="step">2</span><span data-i18n="dec_step2">Provide the key factors</span></h2>
+
+        <div class="field">
+          <label for="dec-password" data-i18n="dec_pw">Password (factor 1)</label>
+          <div class="row">
+            <input type="password" id="dec-password" data-i18n-ph="enc_pw_ph" placeholder="Enter password" autocomplete="off" spellcheck="false">
+            <button class="ghost" type="button" id="dec-toggle-pw" data-i18n="enc_pw_show">Show</button>
+          </div>
+        </div>
+
+        <div class="field" id="dec-cert-field" hidden>
+          <label data-i18n="dec_cert">Certificate file (factor 2)</label>
+          <div class="dropzone small" id="dec-cert-drop" tabindex="0">
+            <input type="file" id="dec-cert-file" hidden accept=".enc1cert,.txt,.pem">
+            <p class="dz-main" data-i18n-html="enc_cert_drop">Drag or choose a certificate file</p>
+          </div>
+          <div class="file-info" id="dec-cert-info" hidden></div>
+        </div>
+
+        <div class="field" id="dec-webauthn-field" hidden>
+          <label data-i18n="dec_k3">Hardware key / recovery code (factor 3)</label>
+          <div class="row">
+            <button class="secondary" type="button" id="dec-webauthn-btn" data-i18n="dec_wa_btn">Verify with hardware key</button>
+            <span class="state" id="dec-webauthn-state">Not verified</span>
+          </div>
+          <p class="hint" data-i18n="dec_wa_hint">No hardware key available? Use the recovery code:</p>
+          <input type="text" id="dec-recovery" data-i18n-ph="dec_recovery_ph" placeholder="XXXX-XXXX-…" spellcheck="false" autocomplete="off">
+          <p class="hint" id="dec-recovery-hint"></p>
+        </div>
+      </div>
+
+      <div class="card actions">
+        <button class="primary" id="dec-submit" disabled data-i18n="dec_submit">Decrypt & open</button>
+        <div class="progress" id="dec-progress" hidden>
+          <div class="bar"><span id="dec-bar"></span></div>
+          <p class="status" id="dec-status"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Tools ============ -->
+    <section class="panel" id="panel-tools">
+
+      <div class="card">
+        <h2><span data-i18n="tls_gen_title">Generate a standalone certificate</span></h2>
+        <p class="hint" data-i18n="tls_gen_hint">Generate a certificate first, reuse it later.</p>
+        <div class="field">
+          <label for="tool-cert-label" data-i18n="tls_gen_label">Note (optional)</label>
+          <input type="text" id="tool-cert-label" data-i18n-ph="tls_gen_ph" placeholder="e.g. Main certificate" maxlength="60">
+        </div>
+        <div class="row">
+          <button class="primary" type="button" id="tool-gen-cert" data-i18n="tls_gen_btn">Generate & download</button>
+        </div>
+        <div class="file-info" id="tool-cert-info" hidden></div>
+      </div>
+
+      <div class="card">
+        <h2><span data-i18n="tls_chk_title">Inspect a certificate</span></h2>
+        <p class="hint" data-i18n="tls_chk_hint1">Confirm a certificate file is intact and see its ID.</p>
+        <p class="hint" data-i18n-html="tls_chk_hint2">Lost a certificate? Drop it here.</p>
+        <div class="dropzone small" id="tool-cert-drop" tabindex="0">
+          <input type="file" id="tool-cert-file" hidden accept=".enc1cert,.txt,.pem">
+          <p class="dz-main" data-i18n-html="enc_cert_drop">Drag or choose a certificate file</p>
+        </div>
+        <div class="file-info" id="tool-cert-check" hidden></div>
+      </div>
+
+      <div class="card">
+        <h2><span data-i18n="tls_cred_title">Hardware key management</span></h2>
+        <p class="hint" data-i18n="tls_cred_hint">Credential IDs recorded on this device:</p>
+        <div id="tool-cred-list" class="cred-list"></div>
+        <div class="row">
+          <button class="ghost danger" type="button" id="tool-forget-creds" data-i18n="tls_cred_forget">Forget credentials</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ About ============ -->
+    <section class="panel" id="panel-about">
+      <div class="card">
+        <h2><span data-i18n="ab_what">What it does</span></h2>
+        <ul class="bullets">
+          <li data-i18n-html="ab_w1">AES-256-GCM, chunked streaming.</li>
+          <li data-i18n-html="ab_w2">Password derived with PBKDF2.</li>
+          <li data-i18n-html="ab_w3">Three factors merged.</li>
+          <li data-i18n-html="ab_w4">Header authenticated as AAD.</li>
+          <li data-i18n-html="ab_w5">Chunk index &amp; count in AAD.</li>
+          <li data-i18n-html="ab_w6">Verify first, decrypt later.</li>
+          <li data-i18n-html="ab_w7">Name/type/size stored encrypted.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2><span data-i18n="ab_not">What it does NOT do</span></h2>
+        <ul class="bullets">
+          <li data-i18n="ab_n1">No network, no upload, no telemetry.</li>
+          <li data-i18n="ab_n2">No MD5 / DES / ECB / home-made algorithms.</li>
+          <li data-i18n="ab_n3">No back door.</li>
+          <li data-i18n="ab_n4">No promise about SSD deletion.</li>
+          <li data-i18n="ab_n5">No X.509 chains, no self-extracting executables.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2><span data-i18n="ab_f3">Two honest facts about the third factor</span></h2>
+        <ul class="bullets">
+          <li data-i18n-html="ab_f3a">A fingerprint never becomes a key.</li>
+          <li data-i18n-html="ab_f3b">No silent fallback.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2><span data-i18n="ab_fmt">File format</span></h2>
+        <pre class="code" data-i18n="ab_format_code">[header 88+N] [verify 48] [metaLen 2] [meta N] [chunk0 .. chunkN-1]</pre>
+        <p class="hint" data-i18n-html="ab_fmt_hint">Output extension .enc1, certificate .enc1cert.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <span id="foot-note">Everything is computed on this machine</span>
+  </footer>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

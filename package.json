@@ -1,0 +1,11 @@
+{
+  "name": "enc1-local-vault",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "纯本地加密工具：口令 + 证书文件 + 硬件密钥三因子（仅用于让 Node 以 ES module 解析 js/*.js，浏览器不依赖它）",
+  "scripts": {
+    "start": "node serve.js",
+    "test": "node tests/smoke.mjs"
+  }
+}
